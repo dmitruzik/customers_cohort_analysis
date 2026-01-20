@@ -1,0 +1,237 @@
+-- COHORT ANALYSIS
+
+-- 1. Identify each customer cohort month
+-- cohort = month of first purchase
+-- 1 cohort per customer
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+)
+SELECT
+    customer_id,
+    DATE_TRUNC('month', first_order_date)::DATE AS cohort_month
+FROM first_purchase
+ORDER BY customer_id;
+
+-- 2. Attach cohort to every order
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+),
+orders_with_cohort AS (
+    SELECT
+        o.order_id,
+        o.customer_id,
+        o.order_date,
+        o.revenue,
+        DATE_TRUNC('month', fp.first_order_date)::DATE AS cohort_month
+    FROM orders o
+    JOIN first_purchase fp
+        ON o.customer_id = fp.customer_id
+)
+SELECT *
+FROM orders_with_cohort
+LIMIT 10;
+
+-- STEP 3️ Calculate “months since first purchase”
+--(cohort index: month 0, 1, 2…)
+
+-- Month 0 = first purchase month
+-- Month 1 = next calendar month, etc.
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+),
+orders_with_cohort AS (
+    SELECT
+        o.customer_id,
+        DATE_TRUNC('month', fp.first_order_date)::DATE AS cohort_month,
+        DATE_TRUNC('month', o.order_date)::DATE AS order_month
+    FROM orders o
+    JOIN first_purchase fp
+        ON o.customer_id = fp.customer_id
+),
+cohort_index AS (
+    SELECT
+        customer_id,
+        cohort_month,
+        order_month,
+        EXTRACT(YEAR FROM order_month) * 12 + EXTRACT(MONTH FROM order_month)
+        - (EXTRACT(YEAR FROM cohort_month) * 12 + EXTRACT(MONTH FROM cohort_month))
+        AS month_number
+    FROM orders_with_cohort
+)
+SELECT *
+FROM cohort_index
+ORDER BY customer_id, month_number;
+
+-- 4. Count active users per cohort & month
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+),
+orders_with_cohort AS (
+    SELECT
+        o.customer_id,
+        DATE_TRUNC('month', fp.first_order_date)::DATE AS cohort_month,
+        DATE_TRUNC('month', o.order_date)::DATE AS order_month
+    FROM orders o
+    JOIN first_purchase fp
+        ON o.customer_id = fp.customer_id
+),
+cohort_index AS (
+    SELECT
+        customer_id,
+        cohort_month,
+        EXTRACT(YEAR FROM order_month) * 12 + EXTRACT(MONTH FROM order_month)
+        - (EXTRACT(YEAR FROM cohort_month) * 12 + EXTRACT(MONTH FROM cohort_month))
+        AS month_number
+    FROM orders_with_cohort
+),
+cohort_counts AS (
+    SELECT
+        cohort_month,
+        month_number,
+        COUNT(DISTINCT customer_id) AS active_users
+    FROM cohort_index
+    GROUP BY cohort_month, month_number
+)
+SELECT *
+FROM cohort_counts
+ORDER BY cohort_month, month_number;
+
+--5. Build retention percentages (retention matrix)
+-- Logic: Divide each month by cohort size
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+),
+orders_with_cohort AS (
+    SELECT
+        o.customer_id,
+        DATE_TRUNC('month', fp.first_order_date)::DATE AS cohort_month,
+        DATE_TRUNC('month', o.order_date)::DATE AS order_month
+    FROM orders o
+    JOIN first_purchase fp
+        ON o.customer_id = fp.customer_id
+),
+cohort_index AS (
+    SELECT
+        customer_id,
+        cohort_month,
+        EXTRACT(YEAR FROM order_month) * 12 + EXTRACT(MONTH FROM order_month)
+        - (EXTRACT(YEAR FROM cohort_month) * 12 + EXTRACT(MONTH FROM cohort_month))
+        AS month_number
+    FROM orders_with_cohort
+),
+cohort_counts AS (
+    SELECT
+        cohort_month,
+        month_number,
+        COUNT(DISTINCT customer_id) AS active_users
+    FROM cohort_index
+    GROUP BY cohort_month, month_number
+),
+cohort_sizes AS (
+    SELECT
+        cohort_month,
+        active_users AS cohort_size
+    FROM cohort_counts
+    WHERE month_number = 0
+)
+SELECT
+    cc.cohort_month,
+    cc.month_number,
+    cc.active_users,
+    cs.cohort_size,
+    ROUND(100.0 * cc.active_users / cs.cohort_size, 2) AS retention_pct
+FROM cohort_counts cc
+JOIN cohort_sizes cs
+    ON cc.cohort_month = cs.cohort_month
+ORDER BY cc.cohort_month, cc.month_number;
+
+--6. Pivot into Matrix format
+
+WITH first_purchase AS (
+    SELECT
+        customer_id,
+        MIN(order_date) AS first_order_date
+    FROM orders
+    GROUP BY customer_id
+),
+orders_with_cohort AS (
+    SELECT
+        o.customer_id,
+        DATE_TRUNC('month', fp.first_order_date)::DATE AS cohort_month,
+        DATE_TRUNC('month', o.order_date)::DATE AS order_month
+    FROM orders o
+    JOIN first_purchase fp
+        ON o.customer_id = fp.customer_id
+),
+cohort_index AS (
+    SELECT
+        customer_id,
+        cohort_month,
+        EXTRACT(YEAR FROM order_month) * 12 + EXTRACT(MONTH FROM order_month)
+        - (EXTRACT(YEAR FROM cohort_month) * 12 + EXTRACT(MONTH FROM cohort_month))
+        AS month_number
+    FROM orders_with_cohort
+),
+cohort_counts AS (
+    SELECT
+        cohort_month,
+        month_number,
+        COUNT(DISTINCT customer_id) AS active_users
+    FROM cohort_index
+    GROUP BY cohort_month, month_number
+),
+cohort_sizes AS (
+    SELECT
+        cohort_month,
+        active_users AS cohort_size
+    FROM cohort_counts
+    WHERE month_number = 0
+),
+retention AS (
+    SELECT
+        cc.cohort_month,
+        cc.month_number,
+        cc.active_users,
+        cs.cohort_size,
+        ROUND(100.0 * cc.active_users / cs.cohort_size, 2) AS retention_pct
+    FROM cohort_counts cc
+    JOIN cohort_sizes cs
+        ON cc.cohort_month = cs.cohort_month
+)
+SELECT
+    cohort_month,
+    MAX(CASE WHEN month_number = 0 THEN retention_pct END) AS m0,
+    MAX(CASE WHEN month_number = 1 THEN retention_pct END) AS m1,
+    MAX(CASE WHEN month_number = 2 THEN retention_pct END) AS m2,
+    MAX(CASE WHEN month_number = 3 THEN retention_pct END) AS m3,
+    MAX(CASE WHEN month_number = 4 THEN retention_pct END) AS m4
+FROM retention
+GROUP BY cohort_month
+ORDER BY cohort_month;
+
+monthly to assess product changes

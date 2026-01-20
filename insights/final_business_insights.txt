@@ -1,0 +1,98 @@
+
+
+Overall retention performance
+
+Average Month-1 retention: 32.0%
+Average Month-3 retention: 33.7%
+
+Insight:
+Only about 1 in 3 customers return after the first month, and retention does not significantly improve by Month 3. This indicates early churn is the primary challenge, not long-term engagement.
+
+Early churn is the biggest drop-off point
+
+From the cohort heatmap and line chart:
+
+Retention drops sharply from Month 0 → Month 1
+After Month 2–3, retention stabilizes at ~25–35%
+
+Later-month retention fluctuates but does not collapse further
+
+Insight:
+Customers who make it past the first month are much more likely to stay, suggesting the activation phase is critical.
+
+High variability between cohorts
+
+Observed patterns:
+
+Some cohorts show strong Month-2 / Month-3 recovery
+Others experience rapid decay
+Later cohorts appear slightly more stable, but inconsistency remains
+
+📌 Insight:
+Retention is not uniform across cohorts, implying:
+Changes in acquisition quality
+Seasonal effects
+
+Product or pricing experiments impacting user behavior
+
+No clear long-term retention growth trend yet
+No consistent upward trend across newer cohorts
+Performance improvements appear sporadic, not systemic
+
+Insight:
+Recent cohorts have not yet demonstrated a sustained retention improvement, meaning optimizations may not be addressing root causes.
+
+Retention pattern summary (what this tells the business)
+Stage	Behavior
+Month 0 → 1	🔻 Major churn
+Month 1 → 3	⚠️ Partial recovery / stabilization
+Month 4+	➖ Flat, predictable retention
+
+This indicates a classic activation problem, not a loyalty problem.
+
+ Business Recommendations
+1️⃣ Improve first-month activation (highest impact)
+
+Focus on:
+
+Onboarding improvements
+
+First-purchase incentives
+
+Clear value proposition in the first 7–14 days
+
+📈 Expected impact: Immediate M1 retention lift
+
+2️⃣ Segment acquisition channels by retention
+
+Analyze:
+
+Paid vs organic cohorts
+
+Campaign-level retention
+
+Discount-driven vs full-price users
+
+📈 Expected impact: Higher quality cohorts
+
+3️⃣ Introduce Month-2 retention hooks
+
+Examples:
+
+Loyalty points unlocked after 2nd purchase
+
+Personalized offers at Day 25–30
+
+📈 Expected impact: Stronger M3 stabilization
+
+4️⃣ Track retention improvements by cohort
+
+Use this dashboard monthly to:
+
+Validate experiments
+
+Detect regressions early
+
+Measure cohort-level improvements
+
+📈 Expected impact: Data-driven iteration cycle
